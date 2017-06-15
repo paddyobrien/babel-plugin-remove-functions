@@ -1,26 +1,30 @@
+'use strict';
+
 var _ember = require('ember');
 
-_ember['default'].assert('this will remain');
-_ember['default'].assert('this will remain', true);
+var _ember2 = _interopRequireDefault(_ember);
 
-_ember['default'].debug('this will remain');
+_ember2.default.assert('this will remain');
+_ember2.default.assert('this will remain', true);
 
-_ember['default'].deprecate('this will remain', false, {
+_ember2.default.debug('this will remain');
+
+_ember2.default.deprecate('this will remain', false, {
   id: 'test-deprecation',
   until: '3.0.0',
   url: 'http://foo.com'
 });
 
-_ember['default'].info('this will remain');
+_ember2.default.info('this will remain');
 
-_ember['default'].runInDebug(function () {
-  _ember['default'].Component.reopen({
+_ember2.default.runInDebug(function () {
+  _ember2.default.Component.reopen({
     didInsertElement: function didInsertElement() {
       console.log('this will all remain');
     }
   });
 });
 
-_ember['default'].warn('this will remain');
+_ember2.default.warn('this will remain');
 
-_ember['default'].isEqual('this will remain', 'ok?');
+_ember2.default.isEqual('this will remain', 'ok?');

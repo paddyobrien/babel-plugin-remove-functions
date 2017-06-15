@@ -9,71 +9,74 @@ module.exports = function(options) {
     var types = babel.types;
     var callPathsToRemove;
 
-    return new babel.Transformer('babel-plugin-remove-functions', {
-      Program: {
-        enter() {
-          state.enter();
+    return {
+      name: 'babel-plugin-remove-functions',
+      visitor: {
+        Program: {
+          enter() {
+            state.enter();
+          },
+          exit() {
+            state.exit();
+          }
         },
-        exit() {
-          state.exit();
-        }
-      },
 
-      ImportDeclaration: function(node) {
-        node.specifiers.forEach((specifier) => {
-          state.importSpecifier(specifier.type, node.source.value, specifier.local.name);
-        });
-      },
+        ImportDeclaration: function(path) {
+          path.node.specifiers.forEach((specifier) => {
+            state.importSpecifier(specifier.type, path.node.source.value, specifier.local.name);
+          });
+        },
 
-      ExpressionStatement: function(node) {
-        if(!node.expression.callee || !node.expression.callee.name) {
-          return;
-        }
+        ExpressionStatement: function(path) {
+          if(!path.node.expression.callee || !path.node.expression.callee.name) {
+            return;
+          }
 
-        let callPath = node.expression.callee.name;
-        if(state.shouldRemoveCallPath(callPath)) {
-          this.dangerouslyRemove();
-        }
-      },
-
-      CallExpression: function(node) {
-        if(node.callee.type === 'MemberExpression') {
-          let callPath = getCallPath(node.callee);
-
+          let callPath = path.node.expression.callee.name;
           if(state.shouldRemoveCallPath(callPath)) {
-            this.dangerouslyRemove();
+            path.remove();
           }
-        }
-      },
+        },
 
-      VariableDeclaration: function(node) {
-        //TODO: GJ: move some of this into State
+        CallExpression: function(path) {
+          if(path.node.callee.type === 'MemberExpression') {
+            let callPath = getCallPath(path.node.callee);
 
-        //eg. `const { assert, deprecate } = Ember;`
-        node.declarations.forEach((declaration) => {
-          if(declaration.init) {
-            let importSource = state.getImportSourceFromLocal(declaration.init.name);
+            if(state.shouldRemoveCallPath(callPath)) {
+              path.remove();
+            }
+          }
+        },
 
-            options.removals.forEach((removal) => {
-              if(removal.module === importSource) {
+        VariableDeclaration: function(path) {
+          //TODO: GJ: move some of this into State
 
-                if(declaration.id && declaration.id.properties) {
-                  declaration.id.properties.forEach((property) => {
-                    //eg. const { warn: renamedWarn } = Ember;
-                    //    =>: property.key.name => 'warn'
-                    //    =>: property.value.name => 'renamedWarn'
-                    if(removal.paths.indexOf(property.key.name) !== -1) {
-                      state.callPathsToRemove.add(property.value.name);
-                    }
-                  });
+          //eg. `const { assert, deprecate } = Ember;`
+          path.node.declarations.forEach((declaration) => {
+            if(declaration.init) {
+              let importSource = state.getImportSourceFromLocal(declaration.init.name);
+
+              options.removals.forEach((removal) => {
+                if(removal.module === importSource) {
+
+                  if(declaration.id && declaration.id.properties) {
+                    declaration.id.properties.forEach((property) => {
+                      //eg. const { warn: renamedWarn } = Ember;
+                      //    =>: property.key.name => 'warn'
+                      //    =>: property.value.name => 'renamedWarn'
+                      if(removal.paths.indexOf(property.key.name) !== -1) {
+                        state.callPathsToRemove.add(property.value.name);
+                      }
+                    });
+                  }
                 }
-              }
-            });
-          }
-        });
+              });
+            }
+          });
+        }
       }
 
-    });
+    };
   };
 
   plugin.baseDir = function() {
